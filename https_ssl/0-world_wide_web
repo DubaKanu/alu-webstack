@@ -1,19 +1,29 @@
 #!/usr/bin/env bash
-# bash file for the work
+# Bash script to check DNS records for subdomains
 
+# Check if at least one argument is provided
+if [ $# -lt 1 ]; then
+    echo "Usage: $0 <domain> [subdomain]"
+    exit 1
+fi
 
-if [ $# == 2 ]; then
-    domain=$1
-    subdomain=$2
-    SUB_DOMAINS=$subdomain
+# Assign domain and subdomain(s)
+domain=$1
+if [ $# -eq 2 ]; then
+    SUB_DOMAINS=("$2")
 else
-    domain=$1
     SUB_DOMAINS=("www" "lb-01" "web-01" "web-02")
 fi
 
-for sub in ${SUB_DOMAINS[@]}; do
-    record_type="$(dig "$sub.$domain" | grep -A1 'ANSWER SECTION:' | tail -1 | awk '{print $4}')"
-    destination=$(dig +short "$sub.$domain" | awk '{print $1}')
-    echo "The subdomain $sub is a $record_type record and points to $destination"
+# Loop through subdomains
+for sub in "${SUB_DOMAINS[@]}"; do
+    full_domain="$sub.$domain"
+    record_type=$(dig +short "$full_domain" | head -n 1)
+
+    if [ -z "$record_type" ]; then
+        echo "The subdomain $sub does not resolve."
+    else
+        destination=$(dig +short "$full_domain" | head -n 1)
+        echo "The subdomain $sub is an A record and points to $destination"
+    fi
 done
- 
