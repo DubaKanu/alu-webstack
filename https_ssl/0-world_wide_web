@@ -1,29 +1,37 @@
 #!/usr/bin/env bash
-# Bash script to check DNS records for subdomains
+# This script audits subdomains for a given domain and displays their DNS records.
 
-# Check if at least one argument is provided
+function get_record() {
+    local domain=$1
+    local subdomain=$2
+
+    # Query the DNS record using dig
+    result=$(dig +short "$subdomain.$domain" | tail -n 1)
+
+    if [ -z "$result" ]; then
+        echo "The subdomain $subdomain.$domain does not exist."
+    else
+        echo "The subdomain $subdomain is an A record and points to $result"
+    fi
+}
+
+# Check if at least 1 argument (domain) is provided
 if [ $# -lt 1 ]; then
-    echo "Usage: $0 <domain> [subdomain]"
+    echo "Usage: $0 domain [subdomain]"
     exit 1
 fi
 
-# Assign domain and subdomain(s)
+# Parameters
 domain=$1
-if [ $# -eq 2 ]; then
-    SUB_DOMAINS=("$2")
+subdomain=$2
+
+# If only domain is provided
+if [ -z "$subdomain" ]; then
+    for sub in www lb-01 web-01 web-02; do
+        get_record "$domain" "$sub"
+    done
 else
-    SUB_DOMAINS=("www" "lb-01" "web-01" "web-02")
+    # If both domain and subdomain are provided
+    get_record "$domain" "$subdomain"
 fi
 
-# Loop through subdomains
-for sub in "${SUB_DOMAINS[@]}"; do
-    full_domain="$sub.$domain"
-    record_type=$(dig +short "$full_domain" | head -n 1)
-
-    if [ -z "$record_type" ]; then
-        echo "The subdomain $sub does not resolve."
-    else
-        destination=$(dig +short "$full_domain" | head -n 1)
-        echo "The subdomain $sub is an A record and points to $destination"
-    fi
-done
