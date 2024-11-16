@@ -1,37 +1,14 @@
 #!/usr/bin/env bash
-# This script audits subdomains for a given domain and displays their DNS records.
+# script to config domain zone to point to load balancer
+# add more subdomains and display info about them
 
-function get_record() {
-    local domain=$1
-    local subdomain=$2
-
-    # Query the DNS record using dig
-    result=$(dig +short "$subdomain.$domain" | tail -n 1)
-
-    if [ -z "$result" ]; then
-        echo "The subdomain $subdomain.$domain does not exist."
-    else
-        echo "The subdomain $subdomain is an A record and points to $result"
-    fi
-}
-
-# Check if at least 1 argument (domain) is provided
-if [ $# -lt 1 ]; then
-    echo "Usage: $0 domain [subdomain]"
-    exit 1
-fi
-
-# Parameters
 domain=$1
-subdomain=$2
-
-# If only domain is provided
-if [ -z "$subdomain" ]; then
-    for sub in www lb-01 web-01 web-02; do
-        get_record "$domain" "$sub"
-    done
+if [ "$#" -eq 2 ]; then
+   sub=$2
 else
-    # If both domain and subdomain are provided
-    get_record "$domain" "$subdomain"
+	sub=("www" "lb-01" "web-01" "web-02")
 fi
-
+for subdomain in "${sub[@]}"; do
+    echo -n "The subdomain $subdomain"
+    dig "$subdomain.$domain" | grep -A1 'ANSWER SECTION:' | tail -n -1 | awk '{ print " is a " $4 " record and points to " $5}'
+done
